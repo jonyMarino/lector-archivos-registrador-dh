@@ -17,6 +17,7 @@ import java.io.*;
 import java.nio.channels.FileChannel;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.text.ParseException;
 import jxl.*;
 import java.util.*;
 import jxl.Workbook;
@@ -113,69 +114,28 @@ public class Traductor {
 
         }
       */
-      public static void traducirTxtADHSoft(String pathTxt,String pathMdb) throws IOException, SQLException{
+      
+      public static void traducirTxtADHSoft(LinkedList<Map<String,Object>> tabla,String pathMdb) throws IOException, SQLException, ParseException{
           Database db = crearBaseDeDatosDHSoftAccess(pathMdb);
-          Table tabla = db.getTable("Instrumento1");
-          try
-          {
-                BufferedReader reader = new BufferedReader(new FileReader(pathTxt));
-           
-                String line;
-                do{
-                    line = reader.readLine();
-                }while(line.isEmpty()/*&& reader.ready()*/);
-                if(!reader.ready())
-                    throw new Exception("El archivo no contiene informaci"+162+"n");
-                LinkedList<String> columnas = obtenerColumnas(line);
-                
-                Map<String,Object> m = new TreeMap<String,Object>();
-                while (reader.ready())
-                {  
-                    line = reader.readLine();
-                    StringTokenizer st = new StringTokenizer(line);
-                    
-                    if (st.hasMoreTokens()) {
-                        try{
-                           String id=st.nextToken();
-                           String fecha=st.nextToken();
-                           java.text.DateFormat df = java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT);
+          Table tablaAccess = db.getTable("Instrumento1");
+          Iterator<Map<String, Object>> it = tabla.iterator();
+        while (it.hasNext()) {
+            Map<String, Object> map = it.next();
+            String fecha = (String) map.get("Fecha");
+            String hora = (String) map.get("Hora");
+            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy"); 
+            Date dFecha = formatter.parse(fecha);
 
-                           Date dFecha = df.parse(fecha);
-                           String Hora=st.nextToken();
-                           int i=0;
-                           while(st.hasMoreTokens()){
-                               String columna = columnas.get(i+3);
-                               Object Valor=st.nextToken();
-                               if(columna.length()>5 && columna.substring(0, 6).equals("ALARMA"))
-                                   Valor = onOffAPorcentaje((String)Valor);
-                               else if(columna.equals("POTENCIA"))
-                                   Valor = potenciaAFloat((String)Valor);
-                               m.put(columnas.get(i+3), Valor);
-                               ++i;
-                           }
-                           
-                           Object alarma = m.get("ALARMA");
-                           if(alarma==null){
-                               alarma = m.get("ALARMA1");
-                           }
-                           tabla.addRow(dFecha,Hora,"",m.get("VALOR"),m.get("SP"),m.get("POTENCIA"),alarma,m.get("ALARMA2"),m.get("ALARMA3"),m.get("ALARMA4")); 
-                           m.clear();
-                           //tabla.getColumn("Valor_medido").write(Valor, 0);
-                        }catch(NoSuchElementException e){
-                            throw e;
-                        }
-                                               
-                    }
-                }
-                
-                reader.close();
-          }
-          catch (Exception e)
-          {
-                System.err.format("Exception occurred trying to read '%s'.", pathTxt);
-                e.printStackTrace();
-          }
+            Object alarma = map.get("ALARMA");
+            if(alarma==null){
+                alarma = map.get("ALARMA1");
+            }
+            tablaAccess.addRow(dFecha,hora,"",map.get("VALOR"),map.get("SP"),map.get("POTENCIA"),alarma,map.get("ALARMA2"),map.get("ALARMA3"),map.get("ALARMA4")); 
+
+        }
+          
       }
+      
       private static int onOffAPorcentaje(String s) throws Exception{
           if(s.equalsIgnoreCase("ON"))
             return 100;
@@ -271,6 +231,66 @@ public class Traductor {
            result.add(st.nextToken());
         }
         return result;
+    }
+    
+        public static LinkedList<Map<String,Object>>  getTabla(String pathTxt) throws FileNotFoundException, IOException, Exception{
+            BufferedReader reader = new BufferedReader(new FileReader(pathTxt));
+           
+            String line;
+            do{
+                line = reader.readLine();
+            }while(line.isEmpty()/*&& reader.ready()*/);
+            if(!reader.ready())
+                throw new Exception("El archivo no contiene informaci"+162+"n");
+            LinkedList<String> columnas = obtenerColumnas(line);
+           // LinkedHashMap<String,Object> hash = new LinkedHashMap<String,Object>();
+           // hash.
+            
+            LinkedList<Map<String,Object>> lista = new LinkedList<Map<String,Object>>();
+            
+            while (reader.ready())
+            {  
+                line = reader.readLine();
+                StringTokenizer st = new StringTokenizer(line);
+
+                if (st.hasMoreTokens()) {
+                    Map<String,Object> m = new TreeMap<String,Object>();
+                    try{
+                       String id=st.nextToken();
+                       String fecha=st.nextToken();
+                       //java.text.DateFormat df = java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT);
+
+                       //Date dFecha = df.parse(fecha);
+                       m.put("Fecha", fecha);
+                       String hora=st.nextToken();
+                       m.put("Hora", hora);
+                       
+                       int i=0;
+                       while(st.hasMoreTokens()){
+                           String columna = columnas.get(i+3);
+                           Object Valor=st.nextToken();
+                           if(columna.length()>5 && columna.substring(0, 6).equals("ALARMA"))
+                               Valor = onOffAPorcentaje((String)Valor);
+                           else if(columna.equals("POTENCIA"))
+                               Valor = potenciaAFloat((String)Valor);
+                           m.put(columnas.get(i+3), Valor);
+                           ++i;
+                       }
+
+                       Object alarma = m.get("ALARMA");
+                       if(alarma==null){
+                           alarma = m.get("ALARMA1");
+                       }
+                       lista.add(m);
+                       
+                       
+                    }catch(NoSuchElementException e){
+                        throw e;
+                    }
+
+                }
+            }    
+            return lista;
     }
     
 }
