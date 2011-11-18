@@ -28,7 +28,8 @@ import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import traductorarchivosdh.modelo.*;
+import traductorarchivosdh.modelo.Mixer;
+import traductorarchivosdh.modelo.Traductor;
 
 /**
  * The application's main frame.
@@ -121,7 +122,6 @@ public class TraductorArchivosDHView extends FrameView {
         jPanel1 = new javax.swing.JPanel();
         jButton3 = new javax.swing.JButton();
         jTextField1 = new javax.swing.JTextField();
-        jButton4 = new javax.swing.JButton();
         menuBar = new javax.swing.JMenuBar();
         javax.swing.JMenu fileMenu = new javax.swing.JMenu();
         javax.swing.JMenuItem exitMenuItem = new javax.swing.JMenuItem();
@@ -180,26 +180,17 @@ public class TraductorArchivosDHView extends FrameView {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jButton4.setAction(actionMap.get("graficar")); // NOI18N
-        jButton4.setText(resourceMap.getString("jButton4.text")); // NOI18N
-        jButton4.setName("jButton4"); // NOI18N
-
         javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
         mainPanelLayout.setHorizontalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(mainPanelLayout.createSequentialGroup()
-                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(mainPanelLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 256, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 256, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(mainPanelLayout.createSequentialGroup()
-                        .addGap(82, 82, 82)
-                        .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 255, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap()
+                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 256, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 256, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(14, Short.MAX_VALUE))
         );
         mainPanelLayout.setVerticalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -208,11 +199,9 @@ public class TraductorArchivosDHView extends FrameView {
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButton1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton4)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(21, 21, 21)
                 .addComponent(jButton2)
-                .addContainerGap(43, Short.MAX_VALUE))
+                .addContainerGap(21, Short.MAX_VALUE))
         );
 
         menuBar.setName("menuBar"); // NOI18N
@@ -280,7 +269,7 @@ public class TraductorArchivosDHView extends FrameView {
     }// </editor-fold>//GEN-END:initComponents
 
     @Action
-    public void traducir() {
+    public void traducir() throws FileNotFoundException, Exception {
         
         if(files == null){
             JOptionPane.showMessageDialog(null,"Debe seleccionar al menos un archivo del registrador.");
@@ -301,7 +290,8 @@ public class TraductorArchivosDHView extends FrameView {
             return;
         }
         getFrame().setEnabled(false);
-        Traductor.traducirTxtAXls(files[0].getAbsolutePath(), archivoXls);
+        final LinkedList<Map<String, Object>> lista = Mixer.getTablaCombinada(files);
+        Traductor.traducirTxtAXls(lista, archivoXls);
         JOptionPane.showMessageDialog(null,"Ha creado exitosamente el archivo: "+archivoXls);
         getFrame().setEnabled(true);
     }
@@ -324,7 +314,9 @@ public class TraductorArchivosDHView extends FrameView {
         fc.setMultiSelectionEnabled(true);
         int returnVal = fc.showOpenDialog(jPanel1);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-          files = fc.getSelectedFiles();
+          files=fc.getSelectedFiles();
+          /*files = new File[1];
+          files[0]=fc.getSelectedFile();*/
           String sFiles=new String();
           for(int i=0;i<files.length;i++){
               sFiles += files[i].getName()+"; ";
@@ -364,11 +356,19 @@ public class TraductorArchivosDHView extends FrameView {
         } else {
             return;
         }
-        final LinkedList<Map<String, Object>> lista = Traductor.getTabla(files[0].getAbsolutePath());
-        getFrame().setEnabled(false);
-        Traductor.traducirTxtADHSoft(lista, archivoMdb);
-        JOptionPane.showMessageDialog(null,"Ha creado exitosamente el archivo: "+archivoMdb);
-        getFrame().setEnabled(true);
+        
+        try{
+            //final LinkedList<Map<String, Object>> lista = Traductor.getTabla(files[0].getAbsolutePath());
+            final LinkedList<Map<String, Object>> lista = Mixer.getTablaCombinada(files);
+            getFrame().setEnabled(false);
+            Traductor.traducirTxtADHSoft(lista, archivoMdb);
+            JOptionPane.showMessageDialog(null,"Ha creado exitosamente el archivo: "+archivoMdb);
+            getFrame().setEnabled(true);
+        }catch(Exception e){
+            getFrame().setEnabled(false);
+            e.getCause();
+        }
+
     }
     
     class AccessFilter extends javax.swing.filechooser.FileFilter {
@@ -391,8 +391,8 @@ public class TraductorArchivosDHView extends FrameView {
             return;
         }
 
-        final LinkedList<Map<String, Object>> lista = Traductor.getTabla(files[0].getAbsolutePath());
-        
+        //final LinkedList<Map<String, Object>> lista = Traductor.getTabla(files[0].getAbsolutePath());
+        final LinkedList<Map<String, Object>> lista = Mixer.getTablaCombinada(files);
         java.awt.EventQueue.invokeLater(new Runnable() {
 
             public void run() {
@@ -415,7 +415,6 @@ public class TraductorArchivosDHView extends FrameView {
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JTextField jTextField1;
     private javax.swing.JPanel mainPanel;

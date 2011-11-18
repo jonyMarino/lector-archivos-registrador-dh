@@ -4,6 +4,7 @@
  */
 package traductorarchivosdh.modelo;
 
+import java.io.File;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -61,7 +62,7 @@ public class TraductorTest {
         for(int i=1;i<7;i++){
             String pathTxt = System.getProperty("user.dir")+"\\test"+i+".txt";
             String pathMdb = "test"+i+".mdb";
-            Traductor.traducirTxtADHSoft(pathTxt, pathMdb);
+            Traductor.traducirTxtADHSoft(Traductor.getTabla(pathTxt), pathMdb);
             System.out.println("traducirTxtADHSoft test"+i);
         }
         // TODO review the generated test code and remove the default call to fail.
