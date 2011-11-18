@@ -18,6 +18,8 @@ import java.nio.channels.FileChannel;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.text.ParseException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jxl.*;
 import java.util.*;
 import jxl.Workbook;
@@ -29,7 +31,7 @@ import java.text.SimpleDateFormat;
 
 
 public class Traductor {
-    public static void traducirTxtAXls(String pathTxt,String pathXls){
+    public static void traducirTxtAXls(LinkedList<Map<String,Object>> tabla,String pathXls){
         try
         {
           String filename = pathXls;
@@ -37,8 +39,8 @@ public class Traductor {
           ws.setLocale(new Locale("en", "EN"));
           WritableWorkbook workbook = 
           Workbook.createWorkbook(new File(filename), ws);
-          WritableSheet s = workbook.createSheet("Sheet1", 0);
-          writeDataSheet(s,pathTxt);
+          WritableSheet sheet = workbook.createSheet("Sheet1", 0);
+          writeDataSheet(sheet,tabla);
           workbook.write();
           workbook.close();      
         }
@@ -52,7 +54,7 @@ public class Traductor {
         }
 
     }
-      private static void writeDataSheet(WritableSheet s,String pathTxt) 
+      private static void writeDataSheet(WritableSheet sheet,LinkedList<Map<String,Object>> tabla) 
         throws WriteException
       {
 
@@ -72,30 +74,35 @@ public class Traductor {
           new DateTime(0,1,new Date(), cf1, DateTime.GMT);
 
         s.addCell(dt);
-        */
-        
-        try
-        {
-            BufferedReader reader = new BufferedReader(new FileReader(pathTxt));
-            int i=0;
-            while (reader.ready())
-            {             
-                int j=0;
-                String line = reader.readLine();
-                StringTokenizer st = new StringTokenizer(line);
-                while (st.hasMoreTokens()) {
-                    Label l = new Label(j,i,st.nextToken(),cf);
-                    s.addCell(l);
-                    ++j;
-                }
-                ++i;
-            }
-            reader.close();
+        */          
+            
+            
+        Set<String> columnas = tabla.get(0).keySet();
+        Iterator<String> itColumnas = columnas.iterator();
+        int j = 0;
+        while (itColumnas.hasNext()){            
+            String nombreColumna = itColumnas.next();
+            Label l = new Label(j,0,nombreColumna,cf);
+            sheet.addCell(l);
+            ++j;
         }
-        catch (Exception e)
-        {
-            System.err.format("Exception occurred trying to read '%s'.", pathTxt);
-            e.printStackTrace();
+
+        int i=1;
+        Iterator<Map<String, Object>> it = tabla.iterator();
+        while (it.hasNext())
+        {             
+            j=0;
+            Map<String, Object> map = it.next();
+            itColumnas = columnas.iterator();
+            while (itColumnas.hasNext()) {
+                Object o = map.get(itColumnas.next());
+                if(o == null)continue;
+                String s = o.toString();
+                Label l = new Label(j,i,s,cf);
+                sheet.addCell(l);
+                ++j;
+            }
+            ++i;
         }
 
      }
@@ -117,26 +124,71 @@ public class Traductor {
       
       public static void traducirTxtADHSoft(LinkedList<Map<String,Object>> tabla,String pathMdb) throws IOException, SQLException, ParseException{
           Database db = crearBaseDeDatosDHSoftAccess(pathMdb);
-          Table tablaAccess = db.getTable("Instrumento1");
+          Table[] tablaAccess ={db.getTable("Instrumento1"),db.getTable("Instrumento2"),db.getTable("Instrumento3"),db.getTable("Instrumento4"),db.getTable("Combinada")};
           Iterator<Map<String, Object>> it = tabla.iterator();
+          SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+          int id=0;
         while (it.hasNext()) {
             Map<String, Object> map = it.next();
             String fecha = (String) map.get("Fecha");
-            String hora = (String) map.get("Hora");
-            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy"); 
+            String hora = (String) map.get("Hora");           
             Date dFecha = formatter.parse(fecha);
+            Object[] entrada = new Object[7*4];
+            
+            for(int j=0;j<4;j++){
+                entrada[0+j*7] = map.get("VALOR_"+(j+1));
+                entrada[1+j*7] = map.get("SP_"+(j+1));
 
-            Object alarma = map.get("ALARMA");
-            if(alarma==null){
-                alarma = map.get("ALARMA1");
+                entrada[2+j*7] = map.get("POTENCIA_"+(j+1));
+                entrada[3+j*7] = map.get("ALARMA_"+(j+1));
+                if(entrada[3+j*7]==null){
+                    entrada[3+j*7] = map.get("ALARMA1_"+(j+1));
+                }
+                entrada[4+j*7] = map.get("ALARMA2_"+(j+1));
+                entrada[5+j*7] = map.get("ALARMA3_"+(j+1));
+                entrada[6+j*7] = map.get("ALARMA4_"+(j+1));
+
+                
+                
+                boolean empty=true;
+                for(int i=0;i<7;i++){
+                    if(entrada[j*7+i]==null) entrada[j*7+i] = "N.I.";
+                    else empty = false;
+                }
+                
+                //si es de un solo canal tiene otra nomenclatura
+                if(empty && j==0){
+                    entrada[0] = map.get("VALOR");
+
+                    entrada[1] = map.get("SP");
+
+                    entrada[2] = map.get("POTENCIA");
+                    entrada[3] = map.get("ALARMA");
+                    if(entrada[3]==null){
+                        entrada[3] = map.get("ALARMA1");
+                    }
+                    entrada[4] = map.get("ALARMA2");
+                    entrada[5] = map.get("ALARMA3");
+                    entrada[6] = map.get("ALARMA4");
+                    for(int i=0;i<7;i++){
+                        if(entrada[i]==null) entrada[i] = "N.I.";
+                        else empty = false;
+                    }
+                }
+                if(!empty){
+                    
+                    tablaAccess[j].addRow(dFecha,hora,"",entrada[0+j*7],entrada[1+j*7],entrada[2+j*7],entrada[3+j*7],entrada[4+j*7],entrada[5+j*7],entrada[6+j*7]);
+                }
             }
-            tablaAccess.addRow(dFecha,hora,"",map.get("VALOR"),map.get("SP"),map.get("POTENCIA"),alarma,map.get("ALARMA2"),map.get("ALARMA3"),map.get("ALARMA4")); 
+            //ahora que pase por los cuatro canales guardo en la combinada
 
-        }
-          
+            tablaAccess[4].addRow(id++,dFecha,hora,entrada[0],entrada[1],entrada[2],entrada[3],entrada[4],entrada[5],entrada[6],entrada[7],entrada[8],entrada[9],entrada[10],entrada[11],entrada[12],entrada[13],entrada[14],entrada[15],entrada[16],entrada[17],entrada[18],entrada[19],entrada[20],entrada[21],entrada[22],entrada[23],entrada[24],entrada[25],entrada[26],entrada[27]);
+
+        }  
+        db.close();
       }
       
-      private static int onOffAPorcentaje(String s) throws Exception{
+      private static Integer onOffAPorcentaje(String s) throws Exception{
           if(s.equalsIgnoreCase("ON"))
             return 100;
           if(s.equalsIgnoreCase("OFF"))
@@ -146,7 +198,7 @@ public class Traductor {
           }
               
       }
-      private static float potenciaAFloat(String s){
+      private static Float potenciaAFloat(String s){
           int indicePorciento=s.indexOf("%");
           String valor = s.substring(0, indicePorciento-1);
           return Float.parseFloat(valor);
@@ -249,12 +301,12 @@ public class Traductor {
             LinkedList<Map<String,Object>> lista = new LinkedList<Map<String,Object>>();
             
             while (reader.ready())
-            {  
+            { 
                 line = reader.readLine();
                 StringTokenizer st = new StringTokenizer(line);
 
                 if (st.hasMoreTokens()) {
-                    Map<String,Object> m = new TreeMap<String,Object>();
+                    Map<String,Object> m = new Traductor.AdquisicionMap();
                     try{
                        String id=st.nextToken();
                        String fecha=st.nextToken();
@@ -269,28 +321,69 @@ public class Traductor {
                        while(st.hasMoreTokens()){
                            String columna = columnas.get(i+3);
                            Object Valor=st.nextToken();
-                           if(columna.length()>5 && columna.substring(0, 6).equals("ALARMA"))
+                           if(columna.matches("ALARMA.*"))
                                Valor = onOffAPorcentaje((String)Valor);
-                           else if(columna.equals("POTENCIA"))
+                           else if(columna.matches("POTENCIA.*"))
                                Valor = potenciaAFloat((String)Valor);
                            m.put(columnas.get(i+3), Valor);
                            ++i;
                        }
-
-                       Object alarma = m.get("ALARMA");
-                       if(alarma==null){
-                           alarma = m.get("ALARMA1");
-                       }
                        lista.add(m);
                        
                        
-                    }catch(NoSuchElementException e){
-                        throw e;
+                    }catch(Exception e){
+                        //
                     }
 
                 }
             }    
             return lista;
+    }
+        
+    private static class AdquisicionMap extends LinkedHashMap<String,Object> implements Comparable<AdquisicionMap>{
+
+        boolean equals(AdquisicionMap o) {
+            String fecha1= (String)o.get("Fecha");
+            String hora1= (String)o.get("Hora");
+            String fecha2 = (String)get("Fecha");         
+            String hora2 = (String)get("Hora");
+            try {
+                SimpleDateFormat f = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                Date dFecha1 = f.parse(fecha1+" "+hora1);
+                Date dFecha2 = f.parse(fecha2+" "+hora2);
+                return dFecha2.equals(dFecha1);
+            } catch (ParseException ex) {
+                Logger.getLogger(Traductor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            return false;
+        }
+        @Override
+        public boolean equals(Object o){
+            return o instanceof AdquisicionMap && equals((AdquisicionMap)o);
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            return hash;
+        }
+
+        public int compareTo(AdquisicionMap o) {
+            String fecha1= (String)o.get("Fecha");
+            String hora1= (String)o.get("Hora");
+            String fecha2 = (String)get("Fecha");         
+            String hora2 = (String)get("Hora");
+            try {
+                SimpleDateFormat f = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                Date dFecha1 = f.parse(fecha1+" "+hora1);
+                Date dFecha2 = f.parse(fecha2+" "+hora2);
+                return dFecha2.compareTo(dFecha1);
+            } catch (ParseException ex) {
+                Logger.getLogger(Traductor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            return 0;
+        }
+    
     }
     
 }
