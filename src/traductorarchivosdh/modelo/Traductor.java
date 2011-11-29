@@ -204,7 +204,7 @@ public class Traductor {
           return Float.parseFloat(valor);
       }
       public static Database crearBaseDeDatosDHSoftAccess(String pathMdb)throws IOException, SQLException{
-        Database db = Database.create(new File(pathMdb));
+        Database db = Database.create(new File(pathMdb),false);     
         for(int i=1;i<21;i++){
             TableBuilder instrumento = new TableBuilder("Instrumento"+i)
             .addColumn(new ColumnBuilder("Fecha")
@@ -328,7 +328,8 @@ public class Traductor {
                            m.put(columnas.get(i+3), Valor);
                            ++i;
                        }
-                       lista.add(m);
+                       if(i!=0) //me fijo que no sea una linea vacia
+                        lista.add(m);
                        
                        
                     }catch(Exception e){

@@ -31,6 +31,7 @@ import javax.swing.JOptionPane;
 import traductorarchivosdh.modelo.Mixer;
 import traductorarchivosdh.modelo.Traductor;
 
+
 /**
  * The application's main frame.
  */
@@ -75,22 +76,22 @@ public class TraductorArchivosDHView extends FrameView {
                         busyIconIndex = 0;
                         busyIconTimer.start();
                     }
-                    progressBar.setVisible(true);
-                    progressBar.setIndeterminate(true);
+                    getProgressBar().setVisible(true);
+                    getProgressBar().setIndeterminate(true);
                 } else if ("done".equals(propertyName)) {
                     busyIconTimer.stop();
                     statusAnimationLabel.setIcon(idleIcon);
-                    progressBar.setVisible(false);
-                    progressBar.setValue(0);
+                    getProgressBar().setVisible(false);
+                    getProgressBar().setValue(0);
                 } else if ("message".equals(propertyName)) {
                     String text = (String)(evt.getNewValue());
                     statusMessageLabel.setText((text == null) ? "" : text);
                     messageTimer.restart();
                 } else if ("progress".equals(propertyName)) {
                     int value = (Integer)(evt.getNewValue());
-                    progressBar.setVisible(true);
-                    progressBar.setIndeterminate(false);
-                    progressBar.setValue(value);
+                    getProgressBar().setVisible(true);
+                    getProgressBar().setIndeterminate(false);
+                    getProgressBar().setValue(value);
                 }
             }
         });
@@ -235,13 +236,13 @@ public class TraductorArchivosDHView extends FrameView {
         statusAnimationLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         statusAnimationLabel.setName("statusAnimationLabel"); // NOI18N
 
+        progressBar.setMaximum(1000);
         progressBar.setName("progressBar"); // NOI18N
 
         javax.swing.GroupLayout statusPanelLayout = new javax.swing.GroupLayout(statusPanel);
         statusPanel.setLayout(statusPanelLayout);
         statusPanelLayout.setHorizontalGroup(
             statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(statusPanelSeparator, javax.swing.GroupLayout.DEFAULT_SIZE, 423, Short.MAX_VALUE)
             .addGroup(statusPanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(statusMessageLabel)
@@ -250,10 +251,11 @@ public class TraductorArchivosDHView extends FrameView {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(statusAnimationLabel)
                 .addContainerGap())
+            .addComponent(statusPanelSeparator, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 423, Short.MAX_VALUE)
         );
         statusPanelLayout.setVerticalGroup(
             statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(statusPanelLayout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, statusPanelLayout.createSequentialGroup()
                 .addComponent(statusPanelSeparator, javax.swing.GroupLayout.PREFERRED_SIZE, 2, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -294,6 +296,20 @@ public class TraductorArchivosDHView extends FrameView {
         Traductor.traducirTxtAXls(lista, archivoXls);
         JOptionPane.showMessageDialog(null,"Ha creado exitosamente el archivo: "+archivoXls);
         getFrame().setEnabled(true);
+    }
+
+    /**
+     * @return the progressBar
+     */
+    public javax.swing.JProgressBar getProgressBar() {
+        return progressBar;
+    }
+
+    /**
+     * @param progressBar the progressBar to set
+     */
+    public void setProgressBar(javax.swing.JProgressBar progressBar) {
+        this.progressBar = progressBar;
     }
     
     class ExcelFilter extends javax.swing.filechooser.FileFilter {
@@ -380,6 +396,8 @@ public class TraductorArchivosDHView extends FrameView {
             return "*.mdb";
         }
     }
+    
+    
 
     @Action
     public void graficar() throws FileNotFoundException, IOException, Exception {
@@ -433,7 +451,6 @@ public class TraductorArchivosDHView extends FrameView {
 
     private JDialog aboutBox;
 }
-
 class Utils {
     /*
      * Get the extension of a file.
