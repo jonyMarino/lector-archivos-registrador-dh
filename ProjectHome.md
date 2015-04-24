@@ -1,0 +1,1 @@
+Programa para traducir y graficar los archivos del registrador
